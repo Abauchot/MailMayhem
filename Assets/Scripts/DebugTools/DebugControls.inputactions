@@ -1,0 +1,75 @@
+{
+    "version": 1,
+    "name": "DebugControls",
+    "maps": [
+        {
+            "name": "Debug",
+            "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+            "actions": [
+                {
+                    "name": "StartGame",
+                    "type": "Button",
+                    "id": "11111111-1111-1111-1111-111111111111",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "EndGame",
+                    "type": "Button",
+                    "id": "33ae1b34-9237-4f3e-87a7-18fc27a687b5",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "RestartGame",
+                    "type": "Button",
+                    "id": "20b845b3-13ea-425d-9669-918f1334128e",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "6cbff9ea-8335-400a-8615-db8c244a2ef2",
+                    "path": "<Keyboard>/f1",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "StartGame",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "b2a95bbd-ef18-4bf7-b74b-610d0e118cc0",
+                    "path": "<Keyboard>/f2",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "EndGame",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "2fd7e84e-ceb0-4737-94c4-3eff49c9bf52",
+                    "path": "<Keyboard>/f3",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "RestartGame",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}
