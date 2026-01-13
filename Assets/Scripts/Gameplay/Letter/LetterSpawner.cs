@@ -1,7 +1,7 @@
 using System;
-using UnityEngine;
 using System.Collections;
 using Core;
+using UnityEngine;
 using Random = UnityEngine.Random;
 
 namespace Gameplay.Letter
@@ -11,10 +11,11 @@ namespace Gameplay.Letter
         [SerializeField] private GameObject letterPrefab;
         [SerializeField] private Transform spawnPosition;
         [SerializeField] private Sprite[] symbolSprites;
-        [SerializeField] private float spawnInterval = 2f;
+        [SerializeField] private float delayAfterResolve = 0.5f;
+        [SerializeField] private HitResolver hitResolver;
 
-        private Coroutine _spawnCoroutine;
         private Letter _currentLetter;
+        private Coroutine _spawnDelayCoroutine;
 
         private void OnEnable()
         {
@@ -25,16 +26,32 @@ namespace Gameplay.Letter
             }
 
             GameSessionController.Instance.OnStateChanged += HandleStateChanged;
+
+            if (hitResolver == null)
+            {
+                Debug.LogError("LetterSpawner: HitResolver reference is missing!");
+                enabled = false;
+                return;
+            }
+
+            hitResolver.OnLetterResolved += HandleLetterResolved;
+
             HandleStateChanged(GameSessionController.Instance.CurrentState);
         }
 
         private void OnDisable()
         {
-            StopSpawning();
+            StopSpawnDelay();
 
-            if (GameSessionController.Instance == null) return;
+            if (GameSessionController.Instance != null)
+            {
+                GameSessionController.Instance.OnStateChanged -= HandleStateChanged;
+            }
 
-            GameSessionController.Instance.OnStateChanged -= HandleStateChanged;
+            if (hitResolver != null)
+            {
+                hitResolver.OnLetterResolved -= HandleLetterResolved;
+            }
         }
 
         private void HandleStateChanged(GameSessionController.SessionState state)
@@ -42,54 +59,48 @@ namespace Gameplay.Letter
             switch (state)
             {
                 case GameSessionController.SessionState.Idle:
-                    StopSpawning();
+                    StopSpawnDelay();
                     ClearCurrentLetter();
                     break;
                 case GameSessionController.SessionState.Playing:
-                    StartSpawning();
+                    SpawnImmediate();
                     break;
                 case GameSessionController.SessionState.GameOver:
-                    StopSpawning();
+                    StopSpawnDelay();
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(state), state, null);
             }
         }
 
-        private void StartSpawning()
+        private void HandleLetterResolved(Letter letter, Boxes.ServiceBox box, DeliveryResult result)
         {
-            if (_spawnCoroutine != null)
-            {
-                StopCoroutine(_spawnCoroutine);
-            }
-            _spawnCoroutine = StartCoroutine(SpawnRoutine());
-        }
+            if (letter != _currentLetter) return;
 
-        private void StopSpawning()
-        {
-            if (_spawnCoroutine == null)
-            {
-                return;
-            }
-            StopCoroutine(_spawnCoroutine);
-            _spawnCoroutine = null;
-        }
+            Destroy(_currentLetter.gameObject);
+            _currentLetter = null;
 
-        private IEnumerator SpawnRoutine()
-        {
-            while (true)
+            if (GameSessionController.Instance != null &&
+                GameSessionController.Instance.CurrentState == GameSessionController.SessionState.Playing)
             {
-                // Only spawn if no current letter exists
-                if (!_currentLetter)
-                {
-                    Spawn();
-                }
-                yield return new WaitForSeconds(spawnInterval);
+                _spawnDelayCoroutine = StartCoroutine(SpawnAfterDelay());
             }
         }
 
-        private Letter Spawn()
+        private IEnumerator SpawnAfterDelay()
         {
+            yield return new WaitForSeconds(delayAfterResolve);
+
+            if (GameSessionController.Instance != null &&
+                GameSessionController.Instance.CurrentState == GameSessionController.SessionState.Playing)
+            {
+                SpawnImmediate();
+            }
+        }
+
+        private void SpawnImmediate()
+        {
+            if (_currentLetter != null) return;
 
             int randomIndex = Random.Range(0, symbolSprites.Length);
             SymbolType randomSymbol = (SymbolType)randomIndex;
@@ -104,40 +115,25 @@ namespace Gameplay.Letter
             {
                 Debug.LogError("LetterSpawner: letterPrefab does not have a Letter component!");
                 Destroy(instance);
-                return null;
+                return;
             }
 
-            letter.Initialize(randomSymbol, randomSprite);
+            letter.Initialize(randomSymbol, randomSprite, hitResolver);
             _currentLetter = letter;
-
-            return letter;
         }
 
-        /// <summary>
-        /// Clears the current letter (useful for game restart)
-        /// </summary>
+        private void StopSpawnDelay()
+        {
+            if (_spawnDelayCoroutine == null) return;
+            StopCoroutine(_spawnDelayCoroutine);
+            _spawnDelayCoroutine = null;
+        }
+
         private void ClearCurrentLetter()
         {
-            if (_currentLetter == null)
-            {
-                return;
-            }
+            if (_currentLetter == null) return;
             Destroy(_currentLetter.gameObject);
             _currentLetter = null;
-        }
-
-        /// <summary>
-        /// Enable or disable spawning
-        /// </summary>
-        public void SetEnabled(bool isEnabled)
-        {
-            enabled = isEnabled;
-            if (isEnabled)
-            {
-                return;
-            }
-            StopSpawning();
-            ClearCurrentLetter();
         }
     }
 }

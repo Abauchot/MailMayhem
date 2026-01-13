@@ -1,3 +1,4 @@
+using Gameplay.Boxes;
 using UnityEngine;
 
 namespace Gameplay.Letter
@@ -8,6 +9,7 @@ namespace Gameplay.Letter
         private SymbolType _symbol;
         private bool _isResolved;
         private SpriteRenderer _spriteRenderer;
+        private HitResolver _hitResolver;
 
         public SymbolType Symbol => _symbol;
         public bool IsResolved => _isResolved;
@@ -17,9 +19,10 @@ namespace Gameplay.Letter
             _spriteRenderer = GetComponent<SpriteRenderer>();
         }
 
-        public void Initialize(SymbolType symbol, Sprite sprite)
+        public void Initialize(SymbolType symbol, Sprite sprite, HitResolver hitResolver)
         {
             _symbol = symbol;
+            _hitResolver = hitResolver;
 
             if (!_spriteRenderer)
             {
@@ -33,6 +36,22 @@ namespace Gameplay.Letter
         public void MarkAsResolved()
         {
             _isResolved = true;
+        }
+
+        private void OnTriggerEnter2D(Collider2D other)
+        {
+            if (_isResolved) return;
+
+            var box = other.GetComponent<ServiceBox>();
+            if (box == null) return;
+
+            if (_hitResolver == null)
+            {
+                Debug.LogWarning("Letter: HitResolver is null (not injected).");
+                return;
+            }
+
+            _hitResolver.Resolve(this, box);
         }
     }
 }
