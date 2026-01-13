@@ -19,9 +19,9 @@ namespace DebugTools
             _endAction = debugMap.FindAction("EndGame");
             _restartAction = debugMap.FindAction("RestartGame");
 
-            _startAction.performed += _ => GameSessionController.Instance.StartGame();
-            _endAction.performed += _ => GameSessionController.Instance.EndGame();
-            _restartAction.performed += _ => GameSessionController.Instance.RestartGame();
+            _startAction.performed += _ => GameSessionController.Instance?.StartGame();
+            _endAction.performed += _ => GameSessionController.Instance?.EndGame();
+            _restartAction.performed += _ => GameSessionController.Instance?.RestartGame();
         }
 
         private void OnEnable()
