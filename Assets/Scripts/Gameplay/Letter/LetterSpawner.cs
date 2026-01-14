@@ -18,6 +18,16 @@ namespace Gameplay.Letter
         private Coroutine _spawnDelayCoroutine;
         private GameSessionController _session;
 
+        /// <summary>
+        /// Fired immediately after a new letter is spawned and initialized.
+        /// </summary>
+        public event Action<Letter> OnLetterSpawned;
+
+        /// <summary>
+        /// Fired when the current letter is cleared (resolved or session state change).
+        /// </summary>
+        public event Action OnLetterCleared;
+
         private void Start()
         {
             if (letterPrefab == null)
@@ -83,6 +93,7 @@ namespace Gameplay.Letter
                     ClearCurrentLetter();
                     break;
                 case GameSessionController.SessionState.Playing:
+                    StopSpawnDelay();
                     SpawnImmediate();
                     break;
                 case GameSessionController.SessionState.GameOver:
@@ -97,8 +108,10 @@ namespace Gameplay.Letter
         {
             if (letter != _currentLetter) return;
 
+            Debug.Log($"[LetterSpawner] Letter resolved: {letter.Symbol}");
             Destroy(_currentLetter.gameObject);
             _currentLetter = null;
+            OnLetterCleared?.Invoke();
 
             if (_session.CurrentState == GameSessionController.SessionState.Playing)
             {
@@ -118,7 +131,10 @@ namespace Gameplay.Letter
 
         private void SpawnImmediate()
         {
-            if (_currentLetter != null) return;
+            if (_currentLetter)
+            {
+                return;
+            }
 
             int randomIndex = Random.Range(0, symbolSprites.Length);
             SymbolType randomSymbol = (SymbolType)randomIndex;
@@ -138,6 +154,9 @@ namespace Gameplay.Letter
 
             letter.Initialize(randomSymbol, randomSprite, hitResolver);
             _currentLetter = letter;
+
+            Debug.Log($"[LetterSpawner] Spawned letter: {randomSymbol}");
+            OnLetterSpawned?.Invoke(letter);
         }
 
         private void StopSpawnDelay()
@@ -152,6 +171,7 @@ namespace Gameplay.Letter
             if (_currentLetter == null) return;
             Destroy(_currentLetter.gameObject);
             _currentLetter = null;
+            OnLetterCleared?.Invoke();
         }
     }
 }

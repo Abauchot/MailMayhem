@@ -366,6 +366,7 @@ MonoBehaviour:
   inputHandler: {fileID: 293908301}
   boxSlotRegistry: {fileID: 1801927360}
   hitResolver: {fileID: 1944780249}
+  letterSpawner: {fileID: 632190055}
   launchDuration: 0.3
   launchEase: 6
 --- !u!114 &293908301

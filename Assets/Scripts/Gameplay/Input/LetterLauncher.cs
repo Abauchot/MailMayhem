@@ -1,6 +1,7 @@
 using Core;
 using DG.Tweening;
 using Gameplay.Boxes;
+using Gameplay.Letter;
 using UnityEngine;
 
 namespace Gameplay.Input
@@ -15,11 +16,13 @@ namespace Gameplay.Input
         [SerializeField] private SlotInputHandler inputHandler;
         [SerializeField] private BoxSlotRegistry boxSlotRegistry;
         [SerializeField] private HitResolver hitResolver;
+        [SerializeField] private LetterSpawner letterSpawner;
         [SerializeField] private float launchDuration = 0.3f;
         [SerializeField] private Ease launchEase = Ease.OutQuad;
 
         private Letter.Letter _currentLetter;
         private bool _isLaunching;
+        private bool _inputLocked;
         private GameSessionController _session;
 
         private void Start()
@@ -45,6 +48,13 @@ namespace Gameplay.Input
                 return;
             }
 
+            if (letterSpawner == null)
+            {
+                Debug.LogError($"[LetterLauncher] Missing required reference: letterSpawner on '{gameObject.name}'. Disabling.");
+                enabled = false;
+                return;
+            }
+
             _session = GameSessionController.Instance;
             if (_session == null)
             {
@@ -55,6 +65,8 @@ namespace Gameplay.Input
 
             inputHandler.OnSlotSelected += HandleSlotSelected;
             hitResolver.OnLetterResolved += HandleLetterResolved;
+            letterSpawner.OnLetterSpawned += HandleLetterSpawned;
+            letterSpawner.OnLetterCleared += HandleLetterCleared;
             _session.OnStateChanged += HandleStateChanged;
         }
 
@@ -70,6 +82,12 @@ namespace Gameplay.Input
                 hitResolver.OnLetterResolved -= HandleLetterResolved;
             }
 
+            if (letterSpawner != null)
+            {
+                letterSpawner.OnLetterSpawned -= HandleLetterSpawned;
+                letterSpawner.OnLetterCleared -= HandleLetterCleared;
+            }
+
             if (_session != null)
             {
                 _session.OnStateChanged -= HandleStateChanged;
@@ -78,11 +96,15 @@ namespace Gameplay.Input
 
         private void HandleStateChanged(GameSessionController.SessionState state)
         {
-            if (state == GameSessionController.SessionState.Idle || state == GameSessionController.SessionState.GameOver)
+            if (state != GameSessionController.SessionState.Idle &&
+                state != GameSessionController.SessionState.GameOver)
             {
-                KillCurrentTween();
-                _currentLetter = null;
+                return;
             }
+            KillCurrentTween();
+            _currentLetter = null;
+            _inputLocked = true;
+            Debug.Log($"[LetterLauncher] State changed to {state}, input inactive");
         }
 
         private void HandleSlotSelected(int slotIndex)
@@ -92,18 +114,10 @@ namespace Gameplay.Input
                 return;
             }
 
-            if (_isLaunching) return;
-
-            TryFindCurrentLetter();
+            if (_inputLocked || _isLaunching) return;
             if (_currentLetter == null) return;
 
             LaunchToSlot(slotIndex);
-        }
-
-        private void TryFindCurrentLetter()
-        {
-            if (_currentLetter != null) return;
-            _currentLetter = FindFirstObjectByType<Letter.Letter>();
         }
 
         private void LaunchToSlot(int slotIndex)
@@ -126,9 +140,26 @@ namespace Gameplay.Input
         private void HandleLetterResolved(Letter.Letter letter, ServiceBox box, DeliveryResult result)
         {
             if (letter != _currentLetter) return;
-            
+
+            _inputLocked = true;
+            Debug.Log("[LetterLauncher] Letter resolved, input locked");
             KillCurrentTween();
             _currentLetter = null;
+        }
+
+        private void HandleLetterSpawned(Letter.Letter letter)
+        {
+            _currentLetter = letter;
+            _inputLocked = false;
+            Debug.Log($"[LetterLauncher] Letter spawned, input unlocked");
+        }
+
+        private void HandleLetterCleared()
+        {
+            KillCurrentTween();
+            _currentLetter = null;
+            _inputLocked = true;
+            Debug.Log("[LetterLauncher] Letter cleared, input locked");
         }
 
         private void KillCurrentTween()
