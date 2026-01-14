@@ -16,36 +16,56 @@ namespace Gameplay.Letter
 
         private Letter _currentLetter;
         private Coroutine _spawnDelayCoroutine;
+        private GameSessionController _session;
 
-        private void OnEnable()
+        private void Start()
         {
-            if (GameSessionController.Instance == null)
+            if (letterPrefab == null)
             {
-                Debug.LogWarning("LetterSpawner: GameSessionController Instance is null.");
-                return;
-            }
-
-            GameSessionController.Instance.OnStateChanged += HandleStateChanged;
-
-            if (hitResolver == null)
-            {
-                Debug.LogError("LetterSpawner: HitResolver reference is missing!");
+                Debug.LogError($"[LetterSpawner] Missing required reference: letterPrefab on '{gameObject.name}'. Disabling.");
                 enabled = false;
                 return;
             }
 
+            if (spawnPosition == null)
+            {
+                Debug.LogError($"[LetterSpawner] Missing required reference: spawnPosition on '{gameObject.name}'. Disabling.");
+                enabled = false;
+                return;
+            }
+
+            if (hitResolver == null)
+            {
+                Debug.LogError($"[LetterSpawner] Missing required reference: hitResolver on '{gameObject.name}'. Disabling.");
+                enabled = false;
+                return;
+            }
+
+            _session = GameSessionController.Instance;
+            if (_session == null)
+            {
+                Debug.LogError($"[LetterSpawner] GameSessionController.Instance is null in Start(). Disabling.");
+                enabled = false;
+                return;
+            }
+
+            _session.OnStateChanged += HandleStateChanged;
             hitResolver.OnLetterResolved += HandleLetterResolved;
 
-            HandleStateChanged(GameSessionController.Instance.CurrentState);
+            // Sync with current state
+            HandleStateChanged(_session.CurrentState);
         }
 
         private void OnDisable()
         {
             StopSpawnDelay();
+        }
 
-            if (GameSessionController.Instance != null)
+        private void OnDestroy()
+        {
+            if (_session != null)
             {
-                GameSessionController.Instance.OnStateChanged -= HandleStateChanged;
+                _session.OnStateChanged -= HandleStateChanged;
             }
 
             if (hitResolver != null)
@@ -80,8 +100,7 @@ namespace Gameplay.Letter
             Destroy(_currentLetter.gameObject);
             _currentLetter = null;
 
-            if (GameSessionController.Instance != null &&
-                GameSessionController.Instance.CurrentState == GameSessionController.SessionState.Playing)
+            if (_session.CurrentState == GameSessionController.SessionState.Playing)
             {
                 _spawnDelayCoroutine = StartCoroutine(SpawnAfterDelay());
             }
@@ -91,8 +110,7 @@ namespace Gameplay.Letter
         {
             yield return new WaitForSeconds(delayAfterResolve);
 
-            if (GameSessionController.Instance != null &&
-                GameSessionController.Instance.CurrentState == GameSessionController.SessionState.Playing)
+            if (_session.CurrentState == GameSessionController.SessionState.Playing)
             {
                 SpawnImmediate();
             }

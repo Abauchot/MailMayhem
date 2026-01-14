@@ -20,26 +20,45 @@ namespace Gameplay.Input
 
         private Letter.Letter _currentLetter;
         private bool _isLaunching;
+        private GameSessionController _session;
 
-        private void OnEnable()
+        private void Start()
         {
-            if (inputHandler != null)
+            if (inputHandler == null)
             {
-                inputHandler.OnSlotSelected += HandleSlotSelected;
+                Debug.LogError($"[LetterLauncher] Missing required reference: inputHandler on '{gameObject.name}'. Disabling.");
+                enabled = false;
+                return;
             }
 
-            if (hitResolver != null)
+            if (boxSlotRegistry == null)
             {
-                hitResolver.OnLetterResolved += HandleLetterResolved;
+                Debug.LogError($"[LetterLauncher] Missing required reference: boxSlotRegistry on '{gameObject.name}'. Disabling.");
+                enabled = false;
+                return;
             }
 
-            if (GameSessionController.Instance != null)
+            if (hitResolver == null)
             {
-                GameSessionController.Instance.OnStateChanged += HandleStateChanged;
+                Debug.LogError($"[LetterLauncher] Missing required reference: hitResolver on '{gameObject.name}'. Disabling.");
+                enabled = false;
+                return;
             }
+
+            _session = GameSessionController.Instance;
+            if (_session == null)
+            {
+                Debug.LogError($"[LetterLauncher] GameSessionController.Instance is null in Start(). Disabling.");
+                enabled = false;
+                return;
+            }
+
+            inputHandler.OnSlotSelected += HandleSlotSelected;
+            hitResolver.OnLetterResolved += HandleLetterResolved;
+            _session.OnStateChanged += HandleStateChanged;
         }
 
-        private void OnDisable()
+        private void OnDestroy()
         {
             if (inputHandler != null)
             {
@@ -51,9 +70,9 @@ namespace Gameplay.Input
                 hitResolver.OnLetterResolved -= HandleLetterResolved;
             }
 
-            if (GameSessionController.Instance != null)
+            if (_session != null)
             {
-                GameSessionController.Instance.OnStateChanged -= HandleStateChanged;
+                _session.OnStateChanged -= HandleStateChanged;
             }
         }
 
@@ -68,8 +87,7 @@ namespace Gameplay.Input
 
         private void HandleSlotSelected(int slotIndex)
         {
-            if (GameSessionController.Instance == null ||
-                GameSessionController.Instance.CurrentState != GameSessionController.SessionState.Playing)
+            if (_session.CurrentState != GameSessionController.SessionState.Playing)
             {
                 return;
             }
@@ -90,16 +108,10 @@ namespace Gameplay.Input
 
         private void LaunchToSlot(int slotIndex)
         {
-            if (boxSlotRegistry == null)
-            {
-                Debug.LogWarning("LetterLauncher: BoxSlotRegistry is null.");
-                return;
-            }
-
             var targetBox = boxSlotRegistry.GetSlot(slotIndex);
             if (targetBox == null)
             {
-                Debug.LogWarning($"LetterLauncher: No box at slot {slotIndex}.");
+                Debug.LogWarning($"[LetterLauncher] No box at slot {slotIndex}.");
                 return;
             }
 

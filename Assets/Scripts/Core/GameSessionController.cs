@@ -3,7 +3,6 @@ using UnityEngine;
 
 namespace Core
 {
-    
     public class GameSessionController : MonoBehaviour
     {
         public enum SessionState
@@ -26,11 +25,20 @@ namespace Core
         {
             if (Instance != null && Instance != this)
             {
+                Debug.LogError($"[GameSessionController] Duplicate instance detected on '{gameObject.name}'. Destroying.");
                 Destroy(gameObject);
                 return;
             }
 
             Instance = this;
+        }
+
+        private void OnDestroy()
+        {
+            if (Instance == this)
+            {
+                Instance = null;
+            }
         }
 
         public void StartGame()
