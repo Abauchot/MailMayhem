@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using Core;
+using Gameplay;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -61,18 +62,13 @@ namespace Gameplay.Letter
 
             _session.OnStateChanged += HandleStateChanged;
             hitResolver.OnLetterResolved += HandleLetterResolved;
-
-            // Sync with current state
             HandleStateChanged(_session.CurrentState);
         }
 
         private void OnDisable()
         {
             StopSpawnDelay();
-        }
 
-        private void OnDestroy()
-        {
             if (_session != null)
             {
                 _session.OnStateChanged -= HandleStateChanged;
@@ -104,11 +100,11 @@ namespace Gameplay.Letter
             }
         }
 
-        private void HandleLetterResolved(Letter letter, Boxes.ServiceBox box, DeliveryResult result)
+        private void HandleLetterResolved(LetterResolution resolution)
         {
-            if (letter != _currentLetter) return;
+            if (resolution.Letter != _currentLetter) return;
 
-            Debug.Log($"[LetterSpawner] Letter resolved: {letter.Symbol}");
+            Debug.Log($"[LetterSpawner] Letter resolved: {resolution.Got}");
             Destroy(_currentLetter.gameObject);
             _currentLetter = null;
             OnLetterCleared?.Invoke();

@@ -1,5 +1,6 @@
 using Core;
 using DG.Tweening;
+using Gameplay;
 using Gameplay.Boxes;
 using Gameplay.Letter;
 using UnityEngine;
@@ -70,7 +71,7 @@ namespace Gameplay.Input
             _session.OnStateChanged += HandleStateChanged;
         }
 
-        private void OnDestroy()
+        private void OnDisable()
         {
             if (inputHandler != null)
             {
@@ -137,9 +138,9 @@ namespace Gameplay.Input
                 .OnComplete(() => _isLaunching = false);
         }
 
-        private void HandleLetterResolved(Letter.Letter letter, ServiceBox box, DeliveryResult result)
+        private void HandleLetterResolved(LetterResolution resolution)
         {
-            if (letter != _currentLetter) return;
+            if (resolution.Letter != _currentLetter) return;
 
             _inputLocked = true;
             Debug.Log("[LetterLauncher] Letter resolved, input locked");

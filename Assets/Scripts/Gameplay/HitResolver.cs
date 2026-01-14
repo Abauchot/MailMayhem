@@ -8,12 +8,7 @@ namespace Gameplay
 {
     public class HitResolver : MonoBehaviour
     {
-        // Removed Singleton Instance
-
-        public event Action<Letter.Letter, ServiceBox, DeliveryResult> OnLetterResolved;
-
-        // Removed Awake
-
+        public event Action<LetterResolution> OnLetterResolved;
 
         public DeliveryResult Resolve(Letter.Letter letter, ServiceBox box)
         {
@@ -38,13 +33,20 @@ namespace Gameplay
 
             letter.MarkAsResolved();
 
-            var result = letter.Symbol == box.AcceptedSymbol
-                ? DeliveryResult.Correct
-                : DeliveryResult.Error;
+            bool isCorrect = letter.Symbol == box.AcceptedSymbol;
+            var result = isCorrect ? DeliveryResult.Correct : DeliveryResult.Error;
 
             Debug.Log($"HitResolver: {letter.Symbol} -> {box.AcceptedSymbol} = {result}");
 
-            OnLetterResolved?.Invoke(letter, box, result);
+            var resolution = new LetterResolution(
+                letter: letter,
+                isCorrect: isCorrect,
+                slotIndex: box.SlotIndex,
+                expected: box.AcceptedSymbol,
+                got: letter.Symbol
+            );
+
+            OnLetterResolved?.Invoke(resolution);
 
             return result;
         }
