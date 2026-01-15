@@ -31,23 +31,8 @@ namespace Gameplay.Letter
 
         private void Start()
         {
-            if (letterPrefab == null)
+            if (letterPrefab == null || spawnPosition == null || hitResolver == null)
             {
-                Debug.LogError($"[LetterSpawner] Missing required reference: letterPrefab on '{gameObject.name}'. Disabling.");
-                enabled = false;
-                return;
-            }
-
-            if (spawnPosition == null)
-            {
-                Debug.LogError($"[LetterSpawner] Missing required reference: spawnPosition on '{gameObject.name}'. Disabling.");
-                enabled = false;
-                return;
-            }
-
-            if (hitResolver == null)
-            {
-                Debug.LogError($"[LetterSpawner] Missing required reference: hitResolver on '{gameObject.name}'. Disabling.");
                 enabled = false;
                 return;
             }
@@ -55,7 +40,6 @@ namespace Gameplay.Letter
             _session = GameSessionController.Instance;
             if (_session == null)
             {
-                Debug.LogError($"[LetterSpawner] GameSessionController.Instance is null in Start(). Disabling.");
                 enabled = false;
                 return;
             }
@@ -135,8 +119,7 @@ namespace Gameplay.Letter
             int randomIndex = Random.Range(0, symbolSprites.Length);
             SymbolType randomSymbol = (SymbolType)randomIndex;
             Sprite randomSprite = symbolSprites[randomIndex];
-
-            Debug.Log($"Spawning letter with symbol: {randomSymbol}");
+            
 
             GameObject instance = Instantiate(letterPrefab, spawnPosition.position, spawnPosition.rotation);
             Letter letter = instance.GetComponent<Letter>();
@@ -150,8 +133,7 @@ namespace Gameplay.Letter
 
             letter.Initialize(randomSymbol, randomSprite, hitResolver);
             _currentLetter = letter;
-
-            Debug.Log($"[LetterSpawner] Spawned letter: {randomSymbol}");
+            
             OnLetterSpawned?.Invoke(letter);
         }
 

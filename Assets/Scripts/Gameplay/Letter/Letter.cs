@@ -43,7 +43,6 @@ namespace Gameplay.Letter
         {
             yield return null;
             IsArmed = true;
-            Debug.Log($"[Letter] Armed: {Symbol}", this);
         }
 
         public void MarkAsResolved()
@@ -60,7 +59,6 @@ namespace Gameplay.Letter
 
             if (_hitResolver == null)
             {
-                Debug.LogWarning("[Letter] HitResolver is null (not injected).");
                 return;
             }
 

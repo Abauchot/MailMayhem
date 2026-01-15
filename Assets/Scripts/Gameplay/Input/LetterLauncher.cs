@@ -143,7 +143,6 @@ namespace Gameplay.Input
             if (resolution.Letter != _currentLetter) return;
 
             _inputLocked = true;
-            Debug.Log("[LetterLauncher] Letter resolved, input locked");
             KillCurrentTween();
             _currentLetter = null;
         }
@@ -152,7 +151,6 @@ namespace Gameplay.Input
         {
             _currentLetter = letter;
             _inputLocked = false;
-            Debug.Log($"[LetterLauncher] Letter spawned, input unlocked");
         }
 
         private void HandleLetterCleared()
@@ -160,7 +158,6 @@ namespace Gameplay.Input
             KillCurrentTween();
             _currentLetter = null;
             _inputLocked = true;
-            Debug.Log("[LetterLauncher] Letter cleared, input locked");
         }
 
         private void KillCurrentTween()
