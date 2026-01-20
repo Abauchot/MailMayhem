@@ -1,81 +1,55 @@
+using Scoring;
 using TMPro;
 using UnityEngine;
 
-namespace Scoring
+namespace UI
 {
-    public class ScoreDebugHud : MonoBehaviour
+    public class DebugScoreHUD : MonoBehaviour
     {
         [Header("References")]
         [SerializeField] private ScoreSystem scoreSystem;
-        [SerializeField] private TMP_Text scoreText;
-        [SerializeField] private TMP_Text comboText;
+        [SerializeField] private TextMeshProUGUI scoreText;
+        [SerializeField] private TextMeshProUGUI comboText;
 
         private void Start()
         {
-            if (scoreSystem == null)
-            {
-                Debug.LogError("[ScoreDebugHud] ScoreSystem reference is missing.");
-                enabled = false;
-                return;
-            }
-
-            if (scoreText == null)
-            {
-                Debug.LogError("[ScoreDebugHud] ScoreText reference is missing.");
-            }
-
-            if (comboText == null)
-            {
-                Debug.LogError("[ScoreDebugHud] ComboText reference is missing.");
-            }
-
-            scoreSystem.OnScoreChanged += HandleScoreChanged;
-            scoreSystem.OnComboChanged += HandleComboChanged;
-
-            RefreshUI();
-
-            Debug.Log("[ScoreDebugHud] Initialized and subscribed to ScoreSystem events.");
+            ValidateReferences();
+            
+            scoreSystem.OnScoringEvent += UpdateDisplay;
+            
+            // Initialize display
+            UpdateDisplay(new ScoringEvent(
+                isCorrect: true,
+                pointsDelta: 0,
+                newScore: 0,
+                newCombo: 0,
+                letter: null,
+                frame: 0
+            ));
         }
 
-        private void OnDisable()
+        private void OnDestroy()
         {
             if (scoreSystem != null)
-            {
-                scoreSystem.OnScoreChanged -= HandleScoreChanged;
-                scoreSystem.OnComboChanged -= HandleComboChanged;
-            }
+                scoreSystem.OnScoringEvent -= UpdateDisplay;
         }
 
-        private void HandleScoreChanged(int newScore)
+        private void UpdateDisplay(ScoringEvent evt)
         {
-            UpdateScoreText(newScore);
+            scoreText.text = $"SCORE: {evt.NewScore}";
+            comboText.text = $"COMBO: x{evt.NewCombo}";
         }
 
-        private void HandleComboChanged(int newCombo)
+        private void ValidateReferences()
         {
-            UpdateComboText(newCombo);
-        }
-
-        private void RefreshUI()
-        {
-            UpdateScoreText(scoreSystem.Score);
-            UpdateComboText(scoreSystem.Combo);
-        }
-
-        private void UpdateScoreText(int score)
-        {
-            if (scoreText != null)
-            {
-                scoreText.text = $"SCORE: {score}";
-            }
-        }
-
-        private void UpdateComboText(int combo)
-        {
-            if (comboText != null)
-            {
-                comboText.text = $"COMBO: x{combo}";
-            }
+            if (scoreSystem == null)
+                Debug.LogError("[DebugScoreHUD] ScoreSystem reference missing!");
+            
+            if (scoreText == null)
+                Debug.LogError("[DebugScoreHUD] ScoreText reference missing!");
+            
+            if (comboText == null)
+                Debug.LogError("[DebugScoreHUD] ComboText reference missing!");
         }
     }
 }

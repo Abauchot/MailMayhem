@@ -32,6 +32,11 @@ namespace Scoring
         }
     }
 
+    /// <summary>
+    /// Manages score and combo. Listens for letter resolutions and session state,
+    /// calculates points (basePoints * combo), raises scoring events, and resets
+    /// score/combo when the game state changes.
+    /// </summary>
     public class ScoreSystem : MonoBehaviour
     {
         [Header("References")]
@@ -47,12 +52,15 @@ namespace Scoring
 
         private Gameplay.Letter.Letter _lastResolvedLetter;
         private int _lastResolveFrame;
-
+        
         public int Score => _score;
+        
         public int Combo => _combo;
 
-        public event Action<int> OnScoreChanged;
-        public event Action<int> OnComboChanged;
+        /// <summary>
+        /// Fired on each scoring update. Provides IsCorrect, PointsDelta, NewScore,
+        /// NewCombo, Letter and Frame for UI, audio and VFX consumers.
+        /// </summary>
         public event Action<ScoringEvent> OnScoringEvent;
 
         private void Awake()
@@ -113,16 +121,11 @@ namespace Scoring
                 pointsDelta = basePoints * Math.Max(1, _combo);
                 _score += pointsDelta;
 
-                OnComboChanged?.Invoke(_combo);
-                OnScoreChanged?.Invoke(_score);
-
                 Debug.Log($"[ScoreSystem] correct -> combo={_combo} score={_score}");
             }
             else
             {
                 _combo = 0;
-
-                OnComboChanged?.Invoke(_combo);
 
                 Debug.Log("[ScoreSystem] error -> combo reset");
             }
@@ -162,9 +165,6 @@ namespace Scoring
             _combo = 0;
             ClearResolveTracking();
 
-            OnScoreChanged?.Invoke(_score);
-            OnComboChanged?.Invoke(_combo);
-
             Debug.Log($"[ScoreSystem] Reset: score=0 combo=0 (state={state})");
         }
 
@@ -172,8 +172,6 @@ namespace Scoring
         {
             _combo = 0;
             ClearResolveTracking();
-
-            OnComboChanged?.Invoke(_combo);
 
             Debug.Log($"[ScoreSystem] Combo reset: combo=0 (state={state})");
         }
@@ -196,10 +194,6 @@ namespace Scoring
         }
 
 #if UNITY_EDITOR
-        /// <summary>
-        /// Debug-only method to force reset score and combo.
-        /// Only available in the Unity Editor.
-        /// </summary>
         public void ForceResetForDebug()
         {
             ResetAll(GameSessionController.SessionState.Playing);
