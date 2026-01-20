@@ -68,6 +68,7 @@ namespace Gameplay.Input
             hitResolver.OnLetterResolved += HandleLetterResolved;
             letterSpawner.OnLetterSpawned += HandleLetterSpawned;
             letterSpawner.OnLetterCleared += HandleLetterCleared;
+            letterSpawner.OnLetterReturned += HandleLetterReturned;
             _session.OnStateChanged += HandleStateChanged;
         }
 
@@ -87,6 +88,7 @@ namespace Gameplay.Input
             {
                 letterSpawner.OnLetterSpawned -= HandleLetterSpawned;
                 letterSpawner.OnLetterCleared -= HandleLetterCleared;
+                letterSpawner.OnLetterReturned -= HandleLetterReturned;
             }
 
             if (_session != null)
@@ -142,9 +144,24 @@ namespace Gameplay.Input
         {
             if (resolution.Letter != _currentLetter) return;
 
-            _inputLocked = true;
             KillCurrentTween();
-            _currentLetter = null;
+
+            if (resolution.IsCorrect)
+            {
+                _inputLocked = true;
+                _currentLetter = null;
+            }
+            else
+            {
+                _inputLocked = true;
+            }
+        }
+
+        private void HandleLetterReturned(Letter.Letter letter)
+        {
+            if (letter != _currentLetter) return;
+
+            _inputLocked = false;
         }
 
         private void HandleLetterSpawned(Letter.Letter letter)

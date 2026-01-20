@@ -2,6 +2,7 @@ using System;
 using Core;
 using Gameplay;
 using Gameplay.Boxes;
+using Gameplay.Letter;
 using UnityEngine;
 
 namespace Scoring
@@ -47,6 +48,7 @@ namespace Scoring
         [Header("References")]
         [SerializeField] private HitResolver hitResolver;
         [SerializeField] private GameSessionController session;
+        [SerializeField] private LetterSpawner letterSpawner;
 
         [Header("Settings")]
         [SerializeField] private int basePoints = 100;
@@ -93,6 +95,11 @@ namespace Scoring
             hitResolver.OnLetterResolved += HandleLetterResolved;
             session.OnStateChanged += HandleStateChanged;
 
+            if (letterSpawner != null)
+            {
+                letterSpawner.OnLetterReturned += HandleLetterReturned;
+            }
+
             Debug.Log("[ScoreSystem] Initialized and subscribed to events.");
         }
 
@@ -103,6 +110,9 @@ namespace Scoring
 
             if (session != null)
                 session.OnStateChanged -= HandleStateChanged;
+
+            if (letterSpawner != null)
+                letterSpawner.OnLetterReturned -= HandleLetterReturned;
 
             Debug.Log("[ScoreSystem] Unsubscribed from events.");
         }
@@ -131,6 +141,8 @@ namespace Scoring
             else
             {
                 _combo = 0;
+                
+                ClearResolveTracking();
 
                 Debug.Log("[ScoreSystem] error -> combo reset");
             }
@@ -197,6 +209,12 @@ namespace Scoring
         {
             _lastResolvedLetter = null;
             _lastResolveFrame = -1;
+        }
+
+        private void HandleLetterReturned(Letter letter)
+        {
+            ClearResolveTracking();
+            Debug.Log("[ScoreSystem] Letter returned - cleared resolve tracking.");
         }
 
 #if UNITY_EDITOR

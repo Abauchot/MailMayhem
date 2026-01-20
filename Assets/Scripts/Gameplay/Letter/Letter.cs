@@ -50,6 +50,11 @@ namespace Gameplay.Letter
             IsResolved = true;
         }
 
+        public void ResetResolved()
+        {
+            IsResolved = false;
+        }
+
         private void OnTriggerEnter2D(Collider2D other)
         {
             if (!IsArmed || IsResolved) return;

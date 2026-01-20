@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using Core;
+using DG.Tweening;
 using Gameplay;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -13,6 +14,7 @@ namespace Gameplay.Letter
         [SerializeField] private Transform spawnPosition;
         [SerializeField] private Sprite[] symbolSprites;
         [SerializeField] private float delayAfterResolve = 0.5f;
+        [SerializeField] private float returnDuration = 0.3f;
         [SerializeField] private HitResolver hitResolver;
 
         private Letter _currentLetter;
@@ -28,6 +30,11 @@ namespace Gameplay.Letter
         /// Fired when the current letter is cleared (resolved or session state change).
         /// </summary>
         public event Action OnLetterCleared;
+
+        /// <summary>
+        /// Fired when a letter returns to spawn after a wrong hit.
+        /// </summary>
+        public event Action<Letter> OnLetterReturned;
 
         private void Start()
         {
@@ -88,15 +95,40 @@ namespace Gameplay.Letter
         {
             if (resolution.Letter != _currentLetter) return;
 
-            Debug.Log($"[LetterSpawner] Letter resolved: {resolution.Got}");
-            Destroy(_currentLetter.gameObject);
-            _currentLetter = null;
-            OnLetterCleared?.Invoke();
+            Debug.Log($"[LetterSpawner] Letter resolved: {resolution.Got}, IsCorrect: {resolution.IsCorrect}");
 
-            if (_session.CurrentState == GameSessionController.SessionState.Playing)
+            if (resolution.IsCorrect)
             {
-                _spawnDelayCoroutine = StartCoroutine(SpawnAfterDelay());
+                Destroy(_currentLetter.gameObject);
+                _currentLetter = null;
+                OnLetterCleared?.Invoke();
+
+                if (_session.CurrentState == GameSessionController.SessionState.Playing)
+                {
+                    _spawnDelayCoroutine = StartCoroutine(SpawnAfterDelay());
+                }
             }
+            else
+            {
+                ReturnLetterToSpawn();
+            }
+        }
+
+        private void ReturnLetterToSpawn()
+        {
+            if (_currentLetter == null) return;
+
+            _currentLetter.transform
+                .DOMove(spawnPosition.position, returnDuration)
+                .SetEase(Ease.OutQuad)
+                .OnComplete(() =>
+                {
+                    if (_currentLetter != null)
+                    {
+                        _currentLetter.ResetResolved();
+                        OnLetterReturned?.Invoke(_currentLetter);
+                    }
+                });
         }
 
         private IEnumerator SpawnAfterDelay()

@@ -89,6 +89,12 @@ namespace FX
             {
                 _currentSequence.Kill();
             }
+
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.color = _originalColor;
+            }
+            transform.localPosition = _originalPosition;
         }
 
         private void OnDestroy()
