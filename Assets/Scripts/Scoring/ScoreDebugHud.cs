@@ -24,6 +24,7 @@ namespace UI
                 newScore: 0,
                 newCombo: 0,
                 letter: null,
+                hitBox: null,
                 frame: 0
             ));
         }

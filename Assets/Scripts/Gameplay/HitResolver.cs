@@ -43,7 +43,8 @@ namespace Gameplay
                 isCorrect: isCorrect,
                 slotIndex: box.SlotIndex,
                 expected: box.AcceptedSymbol,
-                got: letter.Symbol
+                got: letter.Symbol,
+                hitBox: box
             );
 
             OnLetterResolved?.Invoke(resolution);

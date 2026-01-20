@@ -1,6 +1,7 @@
 using System;
 using Core;
 using Gameplay;
+using Gameplay.Boxes;
 using UnityEngine;
 
 namespace Scoring
@@ -12,6 +13,8 @@ namespace Scoring
         public int NewScore { get; }
         public int NewCombo { get; }
         public Gameplay.Letter.Letter Letter { get; }
+        
+        public ServiceBox HitBox { get; }
         public int Frame { get; }
 
         public ScoringEvent(
@@ -20,6 +23,7 @@ namespace Scoring
             int newScore, 
             int newCombo,
             Gameplay.Letter.Letter letter,
+            ServiceBox hitBox,
             int frame
             )
         {
@@ -28,6 +32,7 @@ namespace Scoring
             NewScore = newScore;
             NewCombo = newCombo;
             Letter = letter;
+            HitBox = hitBox;
             Frame = frame;
         }
     }
@@ -136,6 +141,7 @@ namespace Scoring
                 newScore: _score,
                 newCombo: _combo,
                 letter: resolution.Letter,
+                hitBox: resolution.HitBox,
                 frame: Time.frameCount
             );
             OnScoringEvent?.Invoke(scoringEvent);
