@@ -931,8 +931,56 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Scoring.ScoreSystem
   hitResolver: {fileID: 1944780249}
   session: {fileID: 1380710628}
+  letterSpawner: {fileID: 632190055}
   basePoints: 100
   enableDoubleResolveGuard: 1
+--- !u!1 &495865865
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 495865866}
+  - component: {fileID: 495865867}
+  m_Layer: 0
+  m_Name: ScorePopupSpawner
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &495865866
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 495865865}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.1457, y: -0.38465, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &495865867
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 495865865}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 63e05923ab77e6a4bb26ee21715c3e3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VFX.Score.ScorePopupSpawner
+  scoreSystem: {fileID: 480364899}
+  scorePopupPrefab: {fileID: 5940972657031079795, guid: 4972171495766b14d8df5af47400c0c3, type: 3}
+  spawnOffset: {x: 0, y: 0.5, z: 0}
 --- !u!1001 &543285765
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1102,6 +1150,7 @@ MonoBehaviour:
   - {fileID: 21300000, guid: 2cc7314fbe23d704bb2c4e7fda53bc36, type: 3}
   - {fileID: 21300000, guid: d3289aee6611a914eb353e5ff408bc84, type: 3}
   delayAfterResolve: 0.5
+  returnDuration: 0.3
   hitResolver: {fileID: 1944780249}
 --- !u!114 &765064090 stripped
 MonoBehaviour:
@@ -2263,3 +2312,4 @@ SceneRoots:
   - {fileID: 1901256243}
   - {fileID: 1862585244}
   - {fileID: 1733377968}
+  - {fileID: 495865866}

@@ -1,7 +1,7 @@
 using DG.Tweening;
 using UnityEngine;
 
-namespace FX
+namespace VFX.Boxes
 {
     /// <summary>
     /// Provides visual feedback when a ServiceBox is hit by a letter.

@@ -1,7 +1,7 @@
 using Scoring;
 using UnityEngine;
 
-namespace FX
+namespace VFX.Boxes
 {
     /// <summary>
     /// Coordinates box visual feedback based on scoring events.
