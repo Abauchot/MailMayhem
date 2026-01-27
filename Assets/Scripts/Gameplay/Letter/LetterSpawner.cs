@@ -3,6 +3,7 @@ using System.Collections;
 using Core;
 using DG.Tweening;
 using Gameplay;
+using Gameplay.Difficulty;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -16,10 +17,15 @@ namespace Gameplay.Letter
         [SerializeField] private float delayAfterResolve = 0.5f;
         [SerializeField] private float returnDuration = 0.3f;
         [SerializeField] private HitResolver hitResolver;
+        
+        [Header("Difficulty Integration")]
+        [SerializeField] private DifficultyManager difficultyManager;
+        [SerializeField] private float baseDelayAfterResolve = 0.5f;
 
         private Letter _currentLetter;
         private Coroutine _spawnDelayCoroutine;
         private GameSessionController _session;
+        private float _currentSpawnDelay;
 
         /// <summary>
         /// Fired immediately after a new letter is spawned and initialized.
@@ -53,6 +59,17 @@ namespace Gameplay.Letter
 
             _session.OnStateChanged += HandleStateChanged;
             hitResolver.OnLetterResolved += HandleLetterResolved;
+
+            if (difficultyManager != null)
+            {
+                difficultyManager.OnDifficultyLevelChanged += HandleDifficultyChanged;
+                _currentSpawnDelay = difficultyManager.CurrentSpawnDelay;
+            }
+            else
+            {
+                _currentSpawnDelay = baseDelayAfterResolve;
+                Debug.LogWarning("[LetterSpawner] No DifficultyManager assigned, using base delay.");
+            }
             HandleStateChanged(_session.CurrentState);
         }
 
@@ -71,6 +88,12 @@ namespace Gameplay.Letter
             }
         }
 
+        private void HandleDifficultyChanged(int newLevel, float newSpawnDelay)
+        {
+            _currentSpawnDelay = newSpawnDelay;
+            Debug.Log($"[LetterSpawner] Spawn delay updated to {_currentSpawnDelay:F2}s (level {newLevel})");
+        }
+        
         private void HandleStateChanged(GameSessionController.SessionState state)
         {
             switch (state)
