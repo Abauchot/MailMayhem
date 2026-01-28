@@ -59,6 +59,11 @@ namespace Core
             OnGameEnded?.Invoke();
         }
 
+        public void ReturnToIdle()
+        {
+            SetState(SessionState.Idle);
+        }
+
         public void RestartGame()
         {
             SetState(SessionState.Idle);
