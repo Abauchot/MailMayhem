@@ -25,7 +25,10 @@ namespace Gameplay.Difficulty
         [Header("Box Permutation")]
         [Tooltip("Enable box position swapping")]
         public bool enableBoxPermutation = true;
-        
+
+        [Tooltip("Shuffle boxes immediately when gameplay starts")]
+        public bool shuffleAtStart = false;
+
         [Tooltip("Initial delay before first permutation")]
         public float initialPermutationDelay = 30f;
         

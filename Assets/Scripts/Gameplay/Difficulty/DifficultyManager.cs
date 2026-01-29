@@ -78,6 +78,11 @@ namespace Gameplay.Difficulty
             if (newState == GameSessionController.SessionState.Playing)
             {
                 ResetDifficulty();
+
+                if (settings.enableBoxPermutation && settings.shuffleAtStart)
+                {
+                    TriggerBoxPermutation();
+                }
             }
         }
 
