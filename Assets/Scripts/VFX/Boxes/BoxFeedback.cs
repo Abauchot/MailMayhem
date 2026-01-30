@@ -24,7 +24,7 @@ namespace VFX.Boxes
         [SerializeField] private int shakeVibrato = 10;
 
         private Color _originalColor;
-        private Vector3 _originalPosition;
+        private Vector3 _shakeBasePosition;
         private Sequence _currentSequence;
 
         private void Awake()
@@ -33,7 +33,6 @@ namespace VFX.Boxes
             {
                 _originalColor = spriteRenderer.color;
             }
-            _originalPosition = transform.localPosition;
         }
 
         private void Start()
@@ -46,6 +45,9 @@ namespace VFX.Boxes
         public void PlayCorrectFeedback()
         {
             KillCurrentAnimation();
+            
+            _shakeBasePosition = transform.localPosition;
+            
             _currentSequence = DOTween.Sequence();
             
             _currentSequence.Append(
@@ -57,7 +59,7 @@ namespace VFX.Boxes
             
             _currentSequence.Join(
                 transform.DOShakePosition(shakeDuration, shakeStrength, shakeVibrato)
-                    .OnComplete(() => transform.localPosition = _originalPosition)
+                    .OnComplete(() => transform.localPosition = _shakeBasePosition)
             );
 
             Debug.Log($"[BoxFeedback] Playing correct feedback on {gameObject.name}");
@@ -66,6 +68,9 @@ namespace VFX.Boxes
         public void PlayIncorrectFeedback()
         {
             KillCurrentAnimation();
+            
+            _shakeBasePosition = transform.localPosition;
+
             _currentSequence = DOTween.Sequence();
             
             _currentSequence.Append(
@@ -77,7 +82,7 @@ namespace VFX.Boxes
             
             _currentSequence.Join(
                 transform.DOShakePosition(shakeDuration, shakeStrength * 1.5f, shakeVibrato)
-                    .OnComplete(() => transform.localPosition = _originalPosition)
+                    .OnComplete(() => transform.localPosition = _shakeBasePosition)
             );
 
             Debug.Log($"[BoxFeedback] Playing incorrect feedback on {gameObject.name}");
@@ -85,16 +90,18 @@ namespace VFX.Boxes
 
         private void KillCurrentAnimation()
         {
-            if (_currentSequence != null && _currentSequence.IsActive())
+            bool wasActive = _currentSequence != null && _currentSequence.IsActive();
+            
+            if (wasActive)
             {
                 _currentSequence.Kill();
+                transform.localPosition = _shakeBasePosition;
             }
-
+            
             if (spriteRenderer != null)
             {
                 spriteRenderer.color = _originalColor;
             }
-            transform.localPosition = _originalPosition;
         }
 
         private void OnDestroy()

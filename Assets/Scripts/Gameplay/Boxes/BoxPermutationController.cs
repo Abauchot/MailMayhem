@@ -1,22 +1,35 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using DG.Tweening;
-using Gameplay.Boxes;
 using Gameplay.Difficulty;
 using UnityEngine;
 
 namespace Gameplay.Boxes
 {
     /// <summary>
-    /// Handles dynamic box position permutations during gameplay.
-    /// Swaps box positions to break muscle memory and increase difficulty.
+    /// MIXED MODE - Combines Mirror, Swap, and Shuffle with visual warnings.
+    /// Player gets 1 second warning showing which mode is coming.
     /// </summary>
     public class BoxPermutationController : MonoBehaviour
     {
         [Header("References")]
-        [SerializeField] private DifficultyManager difficultyManager;
         [SerializeField] private BoxSlotRegistry boxRegistry;
+
+        [Header("Mode Settings")]
+        [Tooltip("Enable each permutation mode")]
+        [SerializeField] private bool enableMirror = true;
+        [SerializeField] private bool enableSwap = true;
+        [SerializeField] private bool enableShuffle = true;
+
+        [Header("Timing Settings")]
+        [Tooltip("Time between permutations (seconds)")]
+        [SerializeField] private float permutationInterval = 15f;
+        
+        [Tooltip("Delay before first permutation (seconds)")]
+        [SerializeField] private float initialPermutationDelay = 25f;
+
+        [Tooltip("Warning time before permutation (seconds)")]
+        [SerializeField] private float warningDuration = 1.5f;
 
         [Header("Animation Settings")]
         [SerializeField] private float swapDuration = 0.4f;
@@ -28,131 +41,338 @@ namespace Gameplay.Boxes
         [SerializeField] private bool showDebugInfo = true;
 
         private bool _isPermuting;
+        private Dictionary<int, Vector3> _slotPositions;
+        private bool _initialized;
+        private Vector3 _defaultScale = Vector3.one;
+
+        private float _permutationTimer;
+        private bool _permutationTimerStarted;
+        private int _permutationCount = 0;
+
+        private bool _isMirrored = false; // Track mirror state
+
+        public enum PermutationMode
+        {
+            Mirror,
+            Swap,
+            Shuffle
+        }
+
+        /// <summary>
+        /// Event fired when warning should be displayed.
+        /// UI can subscribe to this to show warning overlay.
+        /// </summary>
+        public event System.Action<PermutationMode, float> OnPermutationWarning;
+
+        /// <summary>
+        /// Event fired when permutation completes.
+        /// </summary>
+        public event System.Action OnPermutationComplete;
 
         private void Start()
         {
             ValidateReferences();
+            InitializeSlotPositions();
 
-            if (difficultyManager == null)
-            {
-                return;
-            }
-            difficultyManager.OnBoxPermutationTriggered += HandlePermutationTriggered;
-            Debug.Log("[BoxPermutationController] Subscribed to permutation events.");
+            Debug.Log("[BoxPermutation] MIXED MODE initialized");
+            Debug.Log($"  Modes: Mirror={enableMirror}, Swap={enableSwap}, Shuffle={enableShuffle}");
+            Debug.Log($"  First permutation in: {initialPermutationDelay}s");
+            Debug.Log($"  Then every: {permutationInterval}s");
+            Debug.Log($"  Warning time: {warningDuration}s");
         }
 
-        private void OnDestroy()
+        private void Update()
         {
-            if (difficultyManager != null)
-            {
-                difficultyManager.OnBoxPermutationTriggered -= HandlePermutationTriggered;
-            }
+            if (!_initialized) return;
+            
+            UpdatePermutationTimer();
         }
 
-        private void HandlePermutationTriggered()
+        private void InitializeSlotPositions()
         {
-            if (_isPermuting) return;
+            _slotPositions = new Dictionary<int, Vector3>();
+            bool scaleCaptured = false;
 
-            StartCoroutine(PermuteBoxes());
-        }
-
-        private IEnumerator PermuteBoxes()
-        {
-            _isPermuting = true;
-
-            // Get all boxes
-            List<ServiceBox> boxes = new List<ServiceBox>();
             for (int i = 0; i < boxRegistry.SlotCount; i++)
             {
                 ServiceBox box = boxRegistry.GetSlot(i);
-                if (box)
+                if (box != null)
                 {
-                    boxes.Add(box);
+                    _slotPositions[i] = box.transform.position;
+                    
+                    if (!scaleCaptured)
+                    {
+                        _defaultScale = box.transform.localScale;
+                        scaleCaptured = true;
+                    }
                 }
             }
 
-            if (boxes.Count < 2)
+            _initialized = true;
+        }
+
+        private void UpdatePermutationTimer()
+        {
+            if (_isPermuting) return;
+
+            // Initial delay
+            if (!_permutationTimerStarted)
             {
-                Debug.LogWarning("[BoxPermutationController] Not enough boxes to permute!");
-                _isPermuting = false;
-                yield break;
+                _permutationTimer += Time.deltaTime;
+                if (_permutationTimer >= initialPermutationDelay)
+                {
+                    _permutationTimerStarted = true;
+                    _permutationTimer = 0f;
+                    TriggerPermutation();
+                }
+                return;
             }
 
-            // Store current positions
-            Dictionary<ServiceBox, Vector3> originalPositions = new Dictionary<ServiceBox, Vector3>();
-            foreach (ServiceBox box in boxes)
+            // Regular interval
+            _permutationTimer += Time.deltaTime;
+            if (_permutationTimer >= permutationInterval)
             {
-                originalPositions[box] = box.transform.position;
+                _permutationTimer = 0f;
+                TriggerPermutation();
             }
+        }
 
-            // Shuffle positions
-            List<Vector3> shuffledPositions = new List<Vector3>(originalPositions.Values);
-            ShuffleList(shuffledPositions);
+        private void TriggerPermutation()
+        {
+            if (_isPermuting) return;
 
-            // Ensure at least one box actually moves
-            bool anyMoved = boxes.Where((t, i) => Vector3.Distance(originalPositions[t], shuffledPositions[i]) > 0.01f).Any();
+            _permutationCount++;
 
-            if (!anyMoved)
-            {
-                // Force a swap between first two boxes
-                (shuffledPositions[0], shuffledPositions[1]) = (shuffledPositions[1], shuffledPositions[0]);
-            }
+            // Pick random mode from enabled modes
+            PermutationMode mode = GetRandomEnabledMode();
 
             if (showDebugInfo)
             {
-                Debug.Log("[BoxPermutationController] Starting box permutation animation...");
+                Debug.Log($"[Permutation] #{_permutationCount} - {mode} mode selected");
             }
 
-            // Animate all boxes simultaneously
-            Sequence permutationSequence = DOTween.Sequence();
+            StartCoroutine(ExecutePermutationWithWarning(mode));
+        }
 
-            for (int i = 0; i < boxes.Count; i++)
+        private PermutationMode GetRandomEnabledMode()
+        {
+            List<PermutationMode> enabledModes = new List<PermutationMode>();
+
+            if (enableMirror) enabledModes.Add(PermutationMode.Mirror);
+            if (enableSwap) enabledModes.Add(PermutationMode.Swap);
+            if (enableShuffle) enabledModes.Add(PermutationMode.Shuffle);
+
+            if (enabledModes.Count == 0)
             {
-                ServiceBox box = boxes[i];
-                Vector3 targetPosition = shuffledPositions[i];
-
-                // Skip if already at target
-                if (Vector3.Distance(box.transform.position, targetPosition) < 0.01f)
-                    continue;
-
-                // Anticipation: scale up slightly
-                Tween anticipation = box.transform.DOScale(Vector3.one * anticipationScale, anticipationDuration);
-                
-                // Move to new position
-                Tween move = box.transform.DOMove(targetPosition, swapDuration).SetEase(swapEase);
-                
-                // Scale back to normal
-                Tween scaleBack = box.transform.DOScale(Vector3.one, anticipationDuration);
-
-                // Add to sequence (all boxes move simultaneously)
-                if (i == 0)
-                {
-                    permutationSequence.Append(anticipation);
-                    permutationSequence.Append(move);
-                    permutationSequence.Append(scaleBack);
-                }
-                else
-                {
-                    permutationSequence.Join(anticipation);
-                    permutationSequence.Join(move);
-                    permutationSequence.Join(scaleBack);
-                }
+                Debug.LogWarning("[Permutation] No modes enabled! Defaulting to Swap.");
+                return PermutationMode.Swap;
             }
 
-            // Wait for animation to complete
-            yield return permutationSequence.WaitForCompletion();
+            return enabledModes[Random.Range(0, enabledModes.Count)];
+        }
 
+        private IEnumerator ExecutePermutationWithWarning(PermutationMode mode)
+        {
+            _isPermuting = true;
+
+            // Fire warning event
             if (showDebugInfo)
             {
-                Debug.Log("[BoxPermutationController] Box permutation complete!");
+                Debug.Log($"[Permutation] ⚠️ WARNING: {mode} incoming in {warningDuration}s!");
             }
+
+            OnPermutationWarning?.Invoke(mode, warningDuration);
+
+            // Wait for warning duration
+            yield return new WaitForSeconds(warningDuration);
+
+            // Execute the permutation
+            SetBoxCollidersEnabled(false);
+
+            switch (mode)
+            {
+                case PermutationMode.Mirror:
+                    yield return StartCoroutine(ExecuteMirror());
+                    break;
+                case PermutationMode.Swap:
+                    yield return StartCoroutine(ExecuteSwap());
+                    break;
+                case PermutationMode.Shuffle:
+                    yield return StartCoroutine(ExecuteShuffle());
+                    break;
+            }
+
+            SetBoxCollidersEnabled(true);
+
+            OnPermutationComplete?.Invoke();
 
             _isPermuting = false;
         }
 
-        /// <summary>
-        /// Fisher-Yates shuffle algorithm.
-        /// </summary>
+        private void SetBoxCollidersEnabled(bool enabled)
+        {
+            for (int i = 0; i < boxRegistry.SlotCount; i++)
+            {
+                ServiceBox box = boxRegistry.GetSlot(i);
+                if (box != null)
+                {
+                    var col = box.GetComponent<Collider2D>();
+                    if (col != null) col.enabled = enabled;
+                }
+            }
+        }
+
+        #region Mirror Mode
+        private IEnumerator ExecuteMirror()
+        {
+            _isMirrored = !_isMirrored;
+
+            ServiceBox[] currentBoxes = new ServiceBox[boxRegistry.SlotCount];
+            for (int i = 0; i < boxRegistry.SlotCount; i++)
+            {
+                currentBoxes[i] = boxRegistry.GetSlot(i);
+            }
+
+            if (showDebugInfo)
+            {
+                Debug.Log($"[Mirror] State: {(_isMirrored ? "MIRRORED" : "NORMAL")}");
+            }
+
+            // Create mirrored mapping
+            ServiceBox[] mirroredBoxes = new ServiceBox[boxRegistry.SlotCount];
+            for (int i = 0; i < currentBoxes.Length; i++)
+            {
+                int mirrorIndex = (currentBoxes.Length - 1) - i;
+                mirroredBoxes[mirrorIndex] = currentBoxes[i];
+            }
+
+            // Animate boxes
+            for (int i = 0; i < currentBoxes.Length; i++)
+            {
+                if (currentBoxes[i] == null) continue;
+
+                int targetSlot = (currentBoxes.Length - 1) - i;
+                Vector3 targetPosition = _slotPositions[targetSlot];
+
+                StartCoroutine(AnimateBoxToPosition(currentBoxes[i], targetPosition, i));
+            }
+
+            yield return new WaitForSeconds(anticipationDuration + swapDuration + anticipationDuration);
+
+            boxRegistry.UpdateSlotMapping(mirroredBoxes);
+        }
+        #endregion
+
+        #region Swap Mode
+        private IEnumerator ExecuteSwap()
+        {
+            ServiceBox[] currentBoxes = new ServiceBox[boxRegistry.SlotCount];
+            for (int i = 0; i < boxRegistry.SlotCount; i++)
+            {
+                currentBoxes[i] = boxRegistry.GetSlot(i);
+            }
+
+            // Pick 2 random slots
+            int slot1 = Random.Range(0, boxRegistry.SlotCount);
+            int slot2 = Random.Range(0, boxRegistry.SlotCount);
+            
+            while (slot2 == slot1)
+            {
+                slot2 = Random.Range(0, boxRegistry.SlotCount);
+            }
+
+            ServiceBox box1 = currentBoxes[slot1];
+            ServiceBox box2 = currentBoxes[slot2];
+
+            if (showDebugInfo)
+            {
+                Debug.Log($"[Swap] {box1.AcceptedSymbol} (slot {slot1}) ↔ {box2.AcceptedSymbol} (slot {slot2})");
+            }
+
+            // Create swapped mapping
+            ServiceBox[] newBoxes = new ServiceBox[boxRegistry.SlotCount];
+            for (int i = 0; i < currentBoxes.Length; i++)
+            {
+                if (i == slot1)
+                    newBoxes[i] = box2;
+                else if (i == slot2)
+                    newBoxes[i] = box1;
+                else
+                    newBoxes[i] = currentBoxes[i];
+            }
+
+            // Animate the 2 boxes
+            StartCoroutine(AnimateBoxToPosition(box1, _slotPositions[slot2], 0));
+            StartCoroutine(AnimateBoxToPosition(box2, _slotPositions[slot1], 1));
+
+            yield return new WaitForSeconds(anticipationDuration + swapDuration + anticipationDuration);
+
+            boxRegistry.UpdateSlotMapping(newBoxes);
+        }
+        #endregion
+
+        #region Shuffle Mode
+        private IEnumerator ExecuteShuffle()
+        {
+            ServiceBox[] currentBoxes = new ServiceBox[boxRegistry.SlotCount];
+            List<int> slotIndices = new List<int>();
+            
+            for (int i = 0; i < boxRegistry.SlotCount; i++)
+            {
+                currentBoxes[i] = boxRegistry.GetSlot(i);
+                slotIndices.Add(i);
+            }
+
+            // Shuffle slots
+            List<int> shuffledSlots = new List<int>(slotIndices);
+            ShuffleList(shuffledSlots);
+
+            // Ensure at least one box moves
+            bool anyMoved = false;
+            for (int i = 0; i < slotIndices.Count; i++)
+            {
+                if (slotIndices[i] != shuffledSlots[i])
+                {
+                    anyMoved = true;
+                    break;
+                }
+            }
+
+            if (!anyMoved && slotIndices.Count >= 2)
+            {
+                (shuffledSlots[0], shuffledSlots[1]) = (shuffledSlots[1], shuffledSlots[0]);
+            }
+
+            if (showDebugInfo)
+            {
+                Debug.Log("[Shuffle] Complete randomization");
+            }
+
+            // Create shuffled mapping
+            ServiceBox[] shuffledBoxes = new ServiceBox[boxRegistry.SlotCount];
+            for (int i = 0; i < slotIndices.Count; i++)
+            {
+                int originalSlot = slotIndices[i];
+                int targetSlot = shuffledSlots[i];
+                shuffledBoxes[targetSlot] = currentBoxes[originalSlot];
+            }
+
+            // Animate boxes
+            for (int i = 0; i < slotIndices.Count; i++)
+            {
+                int originalSlot = slotIndices[i];
+                int targetSlot = shuffledSlots[i];
+                ServiceBox box = currentBoxes[originalSlot];
+                Vector3 targetPosition = _slotPositions[targetSlot];
+
+                StartCoroutine(AnimateBoxToPosition(box, targetPosition, i));
+            }
+
+            yield return new WaitForSeconds(anticipationDuration + swapDuration + anticipationDuration);
+
+            boxRegistry.UpdateSlotMapping(shuffledBoxes);
+        }
+
         private void ShuffleList<T>(List<T> list)
         {
             for (int i = list.Count - 1; i > 0; i--)
@@ -161,14 +381,52 @@ namespace Gameplay.Boxes
                 (list[i], list[randomIndex]) = (list[randomIndex], list[i]);
             }
         }
+        #endregion
+
+        private IEnumerator AnimateBoxToPosition(ServiceBox box, Vector3 targetPosition, int animationIndex)
+        {
+            Vector3 baseScale = _defaultScale;
+            float referenceZ = targetPosition.z;
+            float zOffset = -animationIndex * 0.1f;
+
+            box.transform.DOKill();
+
+            Vector3 currentPos = box.transform.position;
+            Vector3 startPos = new Vector3(currentPos.x, currentPos.y, referenceZ + zOffset);
+            box.transform.position = startPos;
+            
+            box.transform.DOScale(baseScale * anticipationScale, anticipationDuration);
+            yield return new WaitForSeconds(anticipationDuration);
+
+            Vector3 targetWithOffset = new Vector3(targetPosition.x, targetPosition.y, referenceZ + zOffset);
+            box.transform.DOMove(targetWithOffset, swapDuration).SetEase(swapEase);
+            yield return new WaitForSeconds(swapDuration);
+
+            box.transform.DOScale(baseScale, anticipationDuration);
+            yield return new WaitForSeconds(anticipationDuration);
+
+            box.transform.localScale = baseScale;
+            box.transform.position = new Vector3(targetPosition.x, targetPosition.y, referenceZ);
+        }
 
         private void ValidateReferences()
         {
-            if (difficultyManager == null)
-                Debug.LogError("[BoxPermutationController] DifficultyManager reference missing!");
-
             if (boxRegistry == null)
-                Debug.LogError("[BoxPermutationController] BoxSlotRegistry reference missing!");
+                Debug.LogError("[Permutation] BoxSlotRegistry reference missing!");
+        }
+
+        public int PermutationCount => _permutationCount;
+        public bool IsMirrored => _isMirrored;
+
+        public float TimeUntilNextPermutation
+        {
+            get
+            {
+                if (!_permutationTimerStarted)
+                    return initialPermutationDelay - _permutationTimer;
+                else
+                    return permutationInterval - _permutationTimer;
+            }
         }
     }
 }

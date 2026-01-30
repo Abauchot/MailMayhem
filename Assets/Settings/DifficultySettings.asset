@@ -17,10 +17,11 @@ MonoBehaviour:
   spawnDelayDecrement: 0.1
   scorePerLevel: 500
   enableBoxPermutation: 1
+  shuffleAtStart: 0
   initialPermutationDelay: 30
   permutationInterval: 20
   minPermutationInterval: 8
   permutationIntervalDecrement: 1
-  enableComboPressure: 0
+  enableComboPressure: 1
   comboPressureThreshold: 10
   comboPressureMultiplier: 0.8
