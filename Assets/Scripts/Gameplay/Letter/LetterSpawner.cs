@@ -14,7 +14,6 @@ namespace Gameplay.Letter
         [SerializeField] private GameObject letterPrefab;
         [SerializeField] private Transform spawnPosition;
         [SerializeField] private Sprite[] symbolSprites;
-        [SerializeField] private float delayAfterResolve = 0.5f;
         [SerializeField] private float returnDuration = 0.3f;
         [SerializeField] private HitResolver hitResolver;
         
@@ -156,7 +155,7 @@ namespace Gameplay.Letter
 
         private IEnumerator SpawnAfterDelay()
         {
-            yield return new WaitForSeconds(delayAfterResolve);
+            yield return new WaitForSeconds(_currentSpawnDelay);
 
             if (_session.CurrentState == GameSessionController.SessionState.Playing)
             {

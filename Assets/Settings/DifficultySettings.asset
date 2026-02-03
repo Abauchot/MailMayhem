@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: DifficultySettings
   m_EditorClassIdentifier: Assembly-CSharp::Gameplay.Difficulty.DifficultySettings
   baseSpawnDelay: 2
-  minSpawnDelay: 0.5
+  minSpawnDelay: 0.2
   spawnDelayDecrement: 0.1
   scorePerLevel: 500
   enableBoxPermutation: 1

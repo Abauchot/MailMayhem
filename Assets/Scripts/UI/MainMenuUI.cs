@@ -1,18 +1,21 @@
 using System;
 using Core;
+using Modes.Core;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 namespace UI
 {
     /// <summary>
     /// Controls the Main Menu UI.
-    /// Handles Start Game button and displays game title.
+    /// Lets the player pick a game mode, then loads the Gameplay scene.
     /// </summary>
     public class MainMenuUI : MonoBehaviour
     {
-        [Header("References")]
-        [SerializeField] private Button startGameButton;
+        [Header("Mode Buttons")]
+        [SerializeField] private Button classicModeButton;
+        [SerializeField] private Button timeAttackModeButton;
 
         [Header("UI Elements")]
         [SerializeField] private GameObject menuPanel;
@@ -25,16 +28,17 @@ namespace UI
 
             ValidateReferences();
 
-            if (startGameButton != null)
-            {
-                startGameButton.onClick.AddListener(OnStartGameClicked);
-            }
+            if (classicModeButton != null)
+                classicModeButton.onClick.AddListener(OnClassicModeClicked);
+
+            if (timeAttackModeButton != null)
+                timeAttackModeButton.onClick.AddListener(OnTimeAttackModeClicked);
 
             if (_session != null)
             {
                 _session.OnStateChanged += HandleStateChanged;
             }
-            
+
             if (_session != null && _session.CurrentState == GameSessionController.SessionState.Idle)
             {
                 ShowMenu();
@@ -49,10 +53,11 @@ namespace UI
 
         private void OnDestroy()
         {
-            if (startGameButton != null)
-            {
-                startGameButton.onClick.RemoveListener(OnStartGameClicked);
-            }
+            if (classicModeButton != null)
+                classicModeButton.onClick.RemoveListener(OnClassicModeClicked);
+
+            if (timeAttackModeButton != null)
+                timeAttackModeButton.onClick.RemoveListener(OnTimeAttackModeClicked);
 
             if (_session != null)
             {
@@ -72,19 +77,28 @@ namespace UI
                 case GameSessionController.SessionState.GameOver:
                     HideMenu();
                     break;
+                case GameSessionController.SessionState.Paused:
                 default:
                     throw new ArgumentOutOfRangeException(nameof(newState), newState, null);
             }
         }
 
-        private void OnStartGameClicked()
+        private void OnClassicModeClicked()
         {
-            Debug.Log("[MainMenuUI] Start Game button clicked.");
+            StartGameWithMode(GameModeType.Classic);
+        }
 
-            if (_session != null)
-            {
-                _session.StartGame();
-            }
+        private void OnTimeAttackModeClicked()
+        {
+            StartGameWithMode(GameModeType.TimeAttack);
+        }
+
+        private void StartGameWithMode(GameModeType mode)
+        {
+            Debug.Log($"[MainMenuUI] Starting game in {mode} mode.");
+
+            GameModeSelection.SelectedMode = mode;
+            SceneManager.LoadScene("Gameplay");
         }
 
         private void ShowMenu()
@@ -109,8 +123,11 @@ namespace UI
 
         private void ValidateReferences()
         {
-            if (startGameButton == null)
-                Debug.LogWarning("[MainMenuUI] StartGameButton not assigned!");
+            if (classicModeButton == null)
+                Debug.LogWarning("[MainMenuUI] ClassicModeButton not assigned!");
+
+            if (timeAttackModeButton == null)
+                Debug.LogWarning("[MainMenuUI] TimeAttackModeButton not assigned!");
 
             if (_session == null)
                 Debug.LogError("[MainMenuUI] GameSessionController.Instance is null! Make sure it exists in the scene.");

@@ -9,6 +9,7 @@ namespace Core
         {
             Idle,
             Playing,
+            Paused,
             GameOver
         }
 

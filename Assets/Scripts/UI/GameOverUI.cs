@@ -1,7 +1,9 @@
+using System;
 using Core;
 using GameFlow;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace UI
@@ -46,9 +48,15 @@ namespace UI
             {
                 mainMenuButton.onClick.AddListener(OnMainMenuClicked);
             }
-
-            // Initially hide game over screen
-            HideGameOver();
+            
+            if (session != null)
+            {
+                HandleStateChanged(session.CurrentState);
+            }
+            else
+            {
+                HideGameOver();
+            }
 
             Debug.Log("[GameOverUI] Initialized.");
         }
@@ -83,6 +91,10 @@ namespace UI
                 case GameSessionController.SessionState.Playing:
                     HideGameOver();
                     break;
+                case GameSessionController.SessionState.Paused:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(newState), newState, null);
             }
         }
 
@@ -139,21 +151,13 @@ namespace UI
         private void OnRestartClicked()
         {
             Debug.Log("[GameOverUI] Restart button clicked.");
-
-            if (session != null)
-            {
-                session.StartGame();
-            }
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
 
         private void OnMainMenuClicked()
         {
             Debug.Log("[GameOverUI] Main Menu button clicked.");
-
-            if (session != null)
-            {
-                session.ReturnToIdle();
-            }
+            SceneManager.LoadScene("Menu");
         }
 
         private void ValidateReferences()
